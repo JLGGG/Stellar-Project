@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	source := "SBCRHU24LEAUGZ7PMFAXNPCZM34JGGYD2N3CPILQIGQWBZFNS7VOCDZ6"
-	destination := "GDYO22NN6UCRI2TRPFAR4RC4LQFFZU673RF4LTZBFUJDUECG5QVMINHM"
+	source := "SAQJCR65OKYXYES2C2Y4YED6Z3PMWKX4ZVIXK6FGSX4M7DJJ753DNMES"      //secret key of my account
+	destination := "GBM37UDJOQBEULCPB6QVNTHCIT572VDIG347G5ZYXZYB5PVEREQCPHU6" //target account
 	client := horizonclient.DefaultTestNetClient
 
 	// Make sure destination account exists
