@@ -10,29 +10,30 @@ import (
 	"strconv"
 )
 
-const keypairCommand string = "/keypair"
-const createAccountCommand string = "/create_account"
-const startCommand string = "/start"
+const KEYPAIR_COMMAND string = "/keypair"
+const MAKE_ACCOUNT_COMMAND string = "/make_account"
+const START_COMMAND string = "/start"
+const WALLET_COMMAND string = "/wallet"
 
-const telegramApiURL string = "https://api.telegram.org/bot"
-const telegramToken string = "BOT_TOKEN" // No external exposure
-const telegramSendMessage string = "/sendMessage"
+const TELEGRAM_API_URL string = "https://api.telegram.org/bot"
+const TELEGRAM_TOKEN string = "BOT_TOKEN" // No external exposure
+const TELEGRAM_SEND_MESSAGE string = "/sendMessage"
 
-var telegramApi string = telegramApiURL + os.Getenv(telegramToken) + telegramSendMessage
+var telegramApi string = TELEGRAM_API_URL + os.Getenv(TELEGRAM_TOKEN) + TELEGRAM_SEND_MESSAGE
 
 type Message struct {
-	text string `json:"text"`
-	chat Chat   `json:"chat"`
+	Text string `json:"text"`
+	Chat Chat   `json:"chat"`
 }
 
 type Chat struct {
-	id int `json:"id"`
+	Id int `json:"id"`
 }
 
 //Update is a Telegram object that the handler receives every time an user interacts with the bot
 type Update struct {
-	updateID int     `json:"update_id"`
-	message  Message `json:"message"`
+	UpdateID int     `json:"update_id"`
+	Message  Message `json:"message"`
 }
 
 func parseTelegramRequest(r *http.Request) (*Update, error) {
@@ -51,11 +52,12 @@ func telegramWebHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var response, errTelegram = sendTextToTelegramBot(update.message.chat.id, update.message.text)
+	// echo for test.
+	var response, errTelegram = sendTextToTelegramBot(update.Message.Chat.Id, update.Message.Text)
 	if errTelegram != nil {
 		log.Printf("Error: %s, response: %s", errTelegram.Error(), response)
 	} else {
-		log.Printf("Echo: %s, chat id: %d", update.message, update.message.chat.id)
+		log.Printf("Echo: %s, chat id: %d", update.Message, update.Message.Chat.Id)
 	}
 }
 
