@@ -15,11 +15,11 @@ const MAKE_ACCOUNT_COMMAND string = "/make_account"
 const START_COMMAND string = "/start"
 const WALLET_COMMAND string = "/wallet"
 
-const TELEGRAM_API_URL string = "https://api.telegram.org/bot"
-const TELEGRAM_TOKEN string = "BOT_TOKEN" // No external exposure
-const TELEGRAM_SEND_MESSAGE string = "/sendMessage"
+const TelegramApiUrl string = "https://api.telegram.org/bot"
+const TelegramToken string = "BOT_TOKEN"
+const TelegramSendMessage string = "/sendMessage"
 
-var telegramApi string = TELEGRAM_API_URL + os.Getenv(TELEGRAM_TOKEN) + TELEGRAM_SEND_MESSAGE
+var globalTelegramApi string = TelegramApiUrl + os.Getenv(TelegramToken) + TelegramSendMessage
 
 type Message struct {
 	Text string `json:"text"`
@@ -45,7 +45,8 @@ func parseTelegramRequest(r *http.Request) (*Update, error) {
 	return &update, nil
 }
 
-func telegramWebHook(w http.ResponseWriter, r *http.Request) {
+func TelegramWebHook(w http.ResponseWriter, r *http.Request) {
+	// Parse incoming request
 	var update, err = parseTelegramRequest(r)
 	if err != nil {
 		log.Printf("error parsing update, %s", err.Error())
@@ -53,17 +54,17 @@ func telegramWebHook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// echo for test.
-	var response, errTelegram = sendTextToTelegramBot(update.Message.Chat.Id, update.Message.Text)
+	var response, errTelegram = sendTextToTelegramBot(update.Message.Chat.Id, "test")
 	if errTelegram != nil {
 		log.Printf("Error: %s, response: %s", errTelegram.Error(), response)
 	} else {
-		log.Printf("Echo: %s, chat id: %d", update.Message, update.Message.Chat.Id)
+		log.Printf("Test: %s, chat id: %d", "test", update.Message.Chat.Id)
 	}
 }
 
 func sendTextToTelegramBot(chatId int, txt string) (string, error) {
 	log.Printf("Send %s to the chat id: %d", txt, chatId)
-	var telegramAPI string = telegramApi
+	var telegramAPI string = globalTelegramApi
 	response, err := http.PostForm(
 		telegramAPI,
 		url.Values{
