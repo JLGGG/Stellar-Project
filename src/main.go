@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/keypair"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -21,6 +24,30 @@ func makeAccount() (string, string) {
 	seed := pair.Seed()
 	log.Printf("Secret key: %s", seed)
 	log.Printf("Public key: %s", address)
+
+	resp, err := http.Get("https://friendbot.stellar.org/?addr=" + address)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(body))
+
+	request := horizonclient.AccountRequest{AccountID: address}
+	account, err := horizonclient.DefaultTestNetClient.AccountDetail(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Balance for account:", address)
+
+	for _, balance := range account.Balances {
+		log.Println(balance)
+	}
 	return address, seed
 }
 
