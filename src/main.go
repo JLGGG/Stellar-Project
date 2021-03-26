@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/keypair"
@@ -8,13 +9,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 )
 
 // Token information is always kept private
 const telegramBotToken string = ""
 
-func makeAccount() (string, string) {
+func makeAccount() (string, string, string) {
 	pair, err := keypair.Random()
 	if err != nil {
 		log.Fatal(err)
@@ -25,6 +27,7 @@ func makeAccount() (string, string) {
 	log.Printf("Secret key: %s", seed)
 	log.Printf("Public key: %s", address)
 
+	// Get 10,000 test XLM from friendbot.
 	resp, err := http.Get("https://friendbot.stellar.org/?addr=" + address)
 	if err != nil {
 		log.Fatal(err)
@@ -37,22 +40,29 @@ func makeAccount() (string, string) {
 	}
 	fmt.Println(string(body))
 
+	// Check account information
 	request := horizonclient.AccountRequest{AccountID: address}
 	account, err := horizonclient.DefaultTestNetClient.AccountDetail(request)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Balance for account:", address)
+	var buffer bytes.Buffer
 
+	log.Println("Balance for account:", address)
+	// Used the bytes package for concatenating sentences. It's speed is O(n).
+	buffer.WriteString(fmt.Sprintf("Account ID: https://horizon-testnet.stellar.org/accounts/%s\n", address))
 	for _, balance := range account.Balances {
 		log.Println(balance)
+		buffer.WriteString(fmt.Sprintf("Account Balance: %s\n", balance))
 	}
-	return address, seed
+
+	log.Println(buffer.String())
+	return address, seed, buffer.String()
 }
 
 func main() {
-	keys := make([]string, 2)
+	keysAndBalance := make([]string, 3)
 	b, err := tb.NewBot(tb.Settings{
 		Token:  telegramBotToken,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
@@ -66,13 +76,21 @@ func main() {
 		b.Send(m.Sender, "Hello World!")
 	})
 
-	// need to add key-value DB for saving keys at this point.
 	b.Handle("/make_account", func(m *tb.Message) {
-		keys[0], keys[1] = makeAccount()
-		address := fmt.Sprintf("Public key: %s", keys[0])
-		seed := fmt.Sprintf("Secret key: %s", keys[1])
+		// keysAndBalance[0]: public key
+		// keysAndBalance[1]: private key
+		// keysAndBalance[2]: account's balance
+		keysAndBalance[0], keysAndBalance[1], keysAndBalance[2] = makeAccount()
+		address := fmt.Sprintf("Public key: %s", keysAndBalance[0])
+		seed := fmt.Sprintf("Secret key: %s", keysAndBalance[1])
+
+		// need to modify regular expression.
+		regexp := regexp.MustCompile("[0-9]+\\.[0-9]+")
+		keysAndBalance[2] = regexp.Split(keysAndBalance[2], 1)[0]
+
 		b.Send(m.Sender, address)
 		b.Send(m.Sender, seed)
+		b.Send(m.Sender, keysAndBalance[2])
 	})
 
 	b.Start()
