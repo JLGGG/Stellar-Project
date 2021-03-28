@@ -54,11 +54,19 @@ func makeAccount() (string, string, string) {
 	buffer.WriteString(fmt.Sprintf("Account ID: https://horizon-testnet.stellar.org/accounts/%s\n", address))
 	for _, balance := range account.Balances {
 		log.Println(balance)
-		buffer.WriteString(fmt.Sprintf("Account Balance: %s\n", balance))
+		buffer.WriteString(fmt.Sprintf("Account Balance: %s\n", balance.Balance))
 	}
 
 	log.Println(buffer.String())
 	return address, seed, buffer.String()
+}
+
+func ParseBalanceStr(balanceStr string) string {
+	// need to modify regular expression.
+	regexp := regexp.MustCompile("{[0-9]+\\.[0-9]+")
+	balanceStr = regexp.Split(balanceStr, 1)[0]
+
+	return balanceStr
 }
 
 func main() {
@@ -79,18 +87,14 @@ func main() {
 	b.Handle("/make_account", func(m *tb.Message) {
 		// keysAndBalance[0]: public key
 		// keysAndBalance[1]: private key
-		// keysAndBalance[2]: account's balance
+		// keysAndBalance[2]: account's balance string
 		keysAndBalance[0], keysAndBalance[1], keysAndBalance[2] = makeAccount()
 		address := fmt.Sprintf("Public key: %s", keysAndBalance[0])
 		seed := fmt.Sprintf("Secret key: %s", keysAndBalance[1])
 
-		// need to modify regular expression.
-		regexp := regexp.MustCompile("[0-9]+\\.[0-9]+")
-		keysAndBalance[2] = regexp.Split(keysAndBalance[2], 1)[0]
-
 		b.Send(m.Sender, address)
 		b.Send(m.Sender, seed)
-		b.Send(m.Sender, keysAndBalance[2])
+		b.Send(m.Sender, ParseBalanceStr(keysAndBalance[2]))
 	})
 
 	b.Start()
