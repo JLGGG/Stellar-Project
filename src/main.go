@@ -49,28 +49,28 @@ func makeAccount() (string, string, string) {
 
 	var buffer bytes.Buffer
 
-	log.Println("Balance for account:", address)
+	//log.Println("Balance for account:", address)
 	// Used the bytes package for concatenating sentences. It's speed is O(n).
-	buffer.WriteString(fmt.Sprintf("Account ID: https://horizon-testnet.stellar.org/accounts/%s\n", address))
 	for _, balance := range account.Balances {
-		log.Println(balance)
-		buffer.WriteString(fmt.Sprintf("Account Balance: %s\n", balance.Balance))
+		//log.Println(balance)
+		buffer.WriteString(fmt.Sprintf("%s\n", balance.Balance))
 	}
 
-	log.Println(buffer.String())
+	//log.Println(buffer.String())
 	return address, seed, buffer.String()
 }
 
 func ParseBalanceStr(balanceStr string) string {
 	// need to modify regular expression.
-	regexp := regexp.MustCompile("{[0-9]+\\.[0-9]+")
-	balanceStr = regexp.Split(balanceStr, 1)[0]
+	regexp := regexp.MustCompile("[0-9]+\\.[0-9]+")
+	balanceStr = regexp.FindAllString(balanceStr, 1)[0]
 
 	return balanceStr
 }
 
 func main() {
 	keysAndBalance := make([]string, 3)
+	var buffer bytes.Buffer
 	b, err := tb.NewBot(tb.Settings{
 		Token:  telegramBotToken,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
@@ -89,12 +89,16 @@ func main() {
 		// keysAndBalance[1]: private key
 		// keysAndBalance[2]: account's balance string
 		keysAndBalance[0], keysAndBalance[1], keysAndBalance[2] = makeAccount()
-		address := fmt.Sprintf("Public key: %s", keysAndBalance[0])
-		seed := fmt.Sprintf("Secret key: %s", keysAndBalance[1])
+		address := fmt.Sprintf("Public key(Id): %s", keysAndBalance[0])
+		seed := fmt.Sprintf("Secret key(Pw): %s", keysAndBalance[1])
+
+		balanceResult := ParseBalanceStr(keysAndBalance[2])
+		buffer.WriteString(fmt.Sprintf("Account ID: https://horizon-testnet.stellar.org/accounts/%s\n", keysAndBalance[0]))
+		buffer.WriteString(fmt.Sprintf("Current balance: %s\n", balanceResult))
 
 		b.Send(m.Sender, address)
 		b.Send(m.Sender, seed)
-		b.Send(m.Sender, ParseBalanceStr(keysAndBalance[2]))
+		b.Send(m.Sender, buffer.String())
 	})
 
 	b.Start()
