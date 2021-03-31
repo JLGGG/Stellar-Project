@@ -55,6 +55,7 @@ func makeAccount() (string, string, string) {
 		//log.Println(balance)
 		buffer.WriteString(fmt.Sprintf("%s\n", balance.Balance))
 	}
+	//TODO Id, Pw should be saved
 
 	//log.Println(buffer.String())
 	return address, seed, buffer.String()
@@ -69,6 +70,14 @@ func ParseBalanceStr(balanceStr string) string {
 }
 
 func main() {
+	//TODO Add / command showing a list of commands.
+	//	   Add remittance function.
+	//     Add receive function.
+	//     Add account view function.
+	//     Add external API to get fiat money.
+	//     Add anchor assets of XLM.
+	//     Add function to get indicators such as USD index, 10 treasury, etc.
+
 	keysAndBalance := make([]string, 3)
 	var buffer bytes.Buffer
 	b, err := tb.NewBot(tb.Settings{
