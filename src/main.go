@@ -89,6 +89,12 @@ func main() {
 		return
 	}
 
+	b.Handle("/", func(m *tb.Message) {
+		b.Send(m.Sender, "List of Supported Commands:\n")
+		b.Send(m.Sender, "/hello")
+		b.Send(m.Sender, "/make_account")
+	})
+
 	b.Handle("/hello", func(m *tb.Message) {
 		b.Send(m.Sender, "Hello World!")
 	})
