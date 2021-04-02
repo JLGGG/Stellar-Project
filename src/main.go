@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"github.com/stellar/go/clients/horizonclient"
@@ -9,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"time"
 )
@@ -16,11 +18,44 @@ import (
 // Token information is always kept private
 const telegramBotToken string = ""
 
+func checkError(e error) {
+	if e != nil {
+		log.Fatal(e)
+	}
+}
+
+func currentDirectory() {
+	path, err := os.Getwd()
+	checkError(err)
+	log.Println(path)
+}
+
+func createFile(name string) *os.File {
+	file, err := os.OpenFile(
+		name,
+		os.O_CREATE|os.O_RDWR|os.O_TRUNC,
+		os.FileMode(644))
+	checkError(err)
+
+	return file
+}
+
+func writeFile(f *os.File, info []string) {
+	w := bufio.NewWriter(f)
+	for _, subInfo := range info {
+		w.WriteString(subInfo)
+	}
+}
+
+func readFile(f *os.File) *bufio.Reader {
+	f.Seek(0, os.SEEK_SET)
+	r := bufio.NewReader(f)
+	return r
+}
+
 func makeAccount() (string, string, string) {
 	pair, err := keypair.Random()
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkError(err)
 
 	address := pair.Address()
 	seed := pair.Seed()
@@ -29,23 +64,17 @@ func makeAccount() (string, string, string) {
 
 	// Get 10,000 test XLM from friendbot.
 	resp, err := http.Get("https://friendbot.stellar.org/?addr=" + address)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkError(err)
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkError(err)
 	fmt.Println(string(body))
 
 	// Check account information
 	request := horizonclient.AccountRequest{AccountID: address}
 	account, err := horizonclient.DefaultTestNetClient.AccountDetail(request)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkError(err)
 
 	var buffer bytes.Buffer
 
@@ -56,6 +85,7 @@ func makeAccount() (string, string, string) {
 		buffer.WriteString(fmt.Sprintf("%s\n", balance.Balance))
 	}
 	//TODO Id, Pw should be saved
+	file := createFile("info.txt")
 
 	//log.Println(buffer.String())
 	return address, seed, buffer.String()
@@ -84,10 +114,7 @@ func main() {
 		Token:  telegramBotToken,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	checkError(err)
 
 	b.Handle("/", func(m *tb.Message) {
 		b.Send(m.Sender, "List of Supported Commands:\n")
