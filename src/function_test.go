@@ -13,14 +13,10 @@ func TestParseBalanceStr(t *testing.T) {
 }
 
 func TestFileFunc(t *testing.T) {
-	currentDirectory()
-	file := createFile("test.txt")
-
-	testStr := make([]string, 2)
-	testStr[0] = "hello "
-	testStr[1] = "world\n"
-	writeFile(file, testStr)
-	str := string(readFile(file))
-	log.Println(str)
-
+	fn := "hello.txt"
+	if existFile(fn) == false {
+		writeFile(fn, []byte("hello world"))
+	} else {
+		log.Println(string(readFile(fn)))
+	}
 }
