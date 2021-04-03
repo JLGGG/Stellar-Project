@@ -11,3 +11,16 @@ func TestParseBalanceStr(t *testing.T) {
 
 	log.Printf("Parsing result: %s", testStr)
 }
+
+func TestFileFunc(t *testing.T) {
+	currentDirectory()
+	file := createFile("test.txt")
+
+	testStr := make([]string, 2)
+	testStr[0] = "hello "
+	testStr[1] = "world\n"
+	writeFile(file, testStr)
+	str := string(readFile(file))
+	log.Println(str)
+
+}

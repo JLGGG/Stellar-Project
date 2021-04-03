@@ -31,13 +31,14 @@ func currentDirectory() {
 }
 
 func createFile(name string) *os.File {
-	file, err := os.OpenFile(
+	f, err := os.OpenFile(
 		name,
-		os.O_CREATE|os.O_RDWR|os.O_TRUNC,
+		// Permissions need to be modified. Not written to data file.
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
 		os.FileMode(644))
 	checkError(err)
 
-	return file
+	return f
 }
 
 func writeFile(f *os.File, info []string) {
@@ -45,12 +46,18 @@ func writeFile(f *os.File, info []string) {
 	for _, subInfo := range info {
 		w.WriteString(subInfo)
 	}
+	w.Flush()
 }
 
-func readFile(f *os.File) *bufio.Reader {
-	f.Seek(0, os.SEEK_SET)
+func readFile(f *os.File) []byte {
+	defer f.Close()
 	r := bufio.NewReader(f)
-	return r
+	fi, _ := f.Stat()
+	b := make([]byte, fi.Size())
+	f.Seek(0, os.SEEK_SET)
+	r.Read(b)
+
+	return b
 }
 
 func makeAccount() (string, string, string) {
@@ -85,7 +92,7 @@ func makeAccount() (string, string, string) {
 		buffer.WriteString(fmt.Sprintf("%s\n", balance.Balance))
 	}
 	//TODO Id, Pw should be saved
-	file := createFile("info.txt")
+	//file := createFile("info.txt")
 
 	//log.Println(buffer.String())
 	return address, seed, buffer.String()
