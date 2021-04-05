@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"testing"
 )
@@ -19,4 +21,16 @@ func TestFileFunc(t *testing.T) {
 	} else {
 		log.Println(string(readFile(fn)))
 	}
+}
+
+func TestSQL(t *testing.T) {
+	db, err := sql.Open("mysql", "")
+	checkError(err)
+	defer db.Close()
+
+	result, err := db.Exec("INSERT INTO entity_table (ID, PW) VALUES (?, ?)", "hello", "world")
+	checkError(err)
+
+	n, err := result.RowsAffected()
+	log.Printf("%d row inserted\n", n)
 }

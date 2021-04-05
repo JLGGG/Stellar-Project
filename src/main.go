@@ -3,7 +3,9 @@ package main
 import (
 	_ "bufio"
 	"bytes"
+	"database/sql"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/keypair"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -47,10 +49,47 @@ func writeFile(fName string, b []byte) {
 	checkError(err)
 }
 
+func writeTxToDB(id, pw string) {
+	// Start the SQL server before using SQL: mysql.server start
+	// Turn off SQL server: mysql.server stop
+	// Keep the sql connection string private.
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/testdb")
+	checkError(err)
+	defer db.Close()
+
+	result, err := db.Exec("INSERT INTO entity_table (ID, PW) VALUES (?, ?)", id, pw)
+	checkError(err)
+
+	n, err := result.RowsAffected()
+	log.Printf("%d row inserted\n", n)
+}
+
 func readFile(fName string) []byte {
 	data, err := ioutil.ReadFile(fName)
 	checkError(err)
 	return data
+}
+
+func readTxFromDB(pID, pPW []string) (count int) {
+	// Keep the sql connection string private.
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/testdb")
+	checkError(err)
+	defer db.Close()
+
+	rows, err := db.Query("SELECT * FROM entity_table")
+	checkError(err)
+	defer rows.Close()
+
+	var id, pw string
+	count = 0
+	for rows.Next() {
+		err := rows.Scan(&id, &pw)
+		checkError(err)
+		pID[count] = id
+		pPW[count] = pw
+		count += 1
+	}
+	return
 }
 
 func makeAccount() (string, string, string) {
@@ -136,11 +175,12 @@ func main() {
 		buffer.WriteString(fmt.Sprintf("Current balance: %s\n", balanceResult))
 
 		//TODO Id, Pw should be saved
-		var temp []byte
-		temp = append(temp, []byte(address)...)
-		temp = append(temp, []byte(seed)...)
-		temp = append(temp, []byte(buffer.String())...)
-		writeFile(fileNameAboutEntity, temp)
+		//var temp []byte
+		//temp = append(temp, []byte(address)...)
+		//temp = append(temp, []byte(seed)...)
+		//temp = append(temp, []byte(buffer.String())...)
+		//writeFile(fileNameAboutEntity, temp)
+		writeTxToDB(keysAndBalance[0], keysAndBalance[1])
 
 		b.Send(m.Sender, address)
 		b.Send(m.Sender, seed)
@@ -148,7 +188,14 @@ func main() {
 	})
 
 	b.Handle("/show_account", func(m *tb.Message) {
-		b.Send(m.Sender, string(readFile(fileNameAboutEntity)))
+		//b.Send(m.Sender, string(readFile(fileNameAboutEntity)))
+		sID := make([]string, 100)
+		sPW := make([]string, 100)
+		count := readTxFromDB(sID, sPW)
+		for i := 0; i < count; i++ {
+			b.Send(m.Sender, sID[i])
+			b.Send(m.Sender, sPW[i])
+		}
 	})
 
 	b.Start()
