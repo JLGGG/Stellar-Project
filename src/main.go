@@ -8,6 +8,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/keypair"
+	"github.com/stellar/go/network"
+	"github.com/stellar/go/protocols/horizon"
+	"github.com/stellar/go/txnbuild"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"io/ioutil"
 	"log"
@@ -125,6 +128,52 @@ func makeAccount() (string, string, string) {
 	return address, seed, b.String()
 }
 
+func sendPayment(src, dest string, amount rune) horizon.Transaction {
+	client := horizonclient.DefaultTestNetClient
+
+	// Make sure destination account exists
+	destAccountRequest := horizonclient.AccountRequest{AccountID: dest}
+	_, err := client.AccountDetail(destAccountRequest)
+	checkError(err)
+
+	// Load the source account
+	sourceKP := keypair.MustParseFull(src)
+	sourceAccountRequest := horizonclient.AccountRequest{AccountID: sourceKP.Address()}
+	sourceAccount, err := client.AccountDetail(sourceAccountRequest)
+	checkError(err)
+
+	// Build transaction
+	tx, err := txnbuild.NewTransaction(
+		txnbuild.TransactionParams{
+			SourceAccount:        &sourceAccount,
+			IncrementSequenceNum: true,
+			BaseFee:              txnbuild.MinBaseFee,
+			Timebounds:           txnbuild.NewInfiniteTimeout(), // Use a real timeout in production!
+			Operations: []txnbuild.Operation{
+				&txnbuild.Payment{
+					Destination: dest,
+					Amount:      string(amount),
+					Asset:       txnbuild.NativeAsset{},
+				},
+			},
+		},
+	)
+	checkError(err)
+
+	// Sign the transaction to prove you are actually the person sending it.
+	tx, err = tx.Sign(network.TestNetworkPassphrase, sourceKP)
+	checkError(err)
+
+	// And finally, send it off to Stellar!
+	resp, err := horizonclient.DefaultTestNetClient.SubmitTransaction(tx)
+	checkError(err)
+
+	//fmt.Println("Successful Transaction:")
+	//fmt.Println("Ledger:", resp.Ledger)
+	//fmt.Println("Hash:", resp.Hash)
+	return resp
+}
+
 func ParseBalanceStr(balanceStr string) string {
 	// need to modify regular expression.
 	regexp := regexp.MustCompile("[0-9]+\\.[0-9]+")
@@ -134,10 +183,10 @@ func ParseBalanceStr(balanceStr string) string {
 }
 
 func main() {
-	//TODO Add / command showing a list of commands.
+	// TODO:
 	//	   Add remittance function.
+	//	   Add account favorites
 	//     Add receive function.
-	//     Add account view function.
 	//     Add external API to get fiat money.
 	//     Add anchor assets of XLM.
 	//     Add function to get indicators such as USD index, 10 treasury, etc.
@@ -155,6 +204,7 @@ func main() {
 		b.Send(m.Sender, "/hello")
 		b.Send(m.Sender, "/make_account")
 		b.Send(m.Sender, "/show_account")
+		b.Send(m.Sender, "/send_payment")
 	})
 
 	b.Handle("/hello", func(m *tb.Message) {
@@ -174,7 +224,6 @@ func main() {
 		buffer.WriteString(fmt.Sprintf("Account ID: https://horizon-testnet.stellar.org/accounts/%s\n", keysAndBalance[0]))
 		buffer.WriteString(fmt.Sprintf("Current balance: %s\n", balanceResult))
 
-		//TODO Id, Pw should be saved
 		//var temp []byte
 		//temp = append(temp, []byte(address)...)
 		//temp = append(temp, []byte(seed)...)
@@ -192,10 +241,21 @@ func main() {
 		sID := make([]string, 100)
 		sPW := make([]string, 100)
 		count := readTxFromDB(sID, sPW)
+
+		b.Send(m.Sender, "View all current account information")
 		for i := 0; i < count; i++ {
-			b.Send(m.Sender, sID[i])
-			b.Send(m.Sender, sPW[i])
+			strID := fmt.Sprintf("Public key(Id): %s\n", sID[i])
+			strPW := fmt.Sprintf("Secret key(Pw): %s\n", sPW[i])
+			note := fmt.Sprintf("------------------ Account number: %d------------------", i)
+			b.Send(m.Sender, note)
+			b.Send(m.Sender, strID)
+			b.Send(m.Sender, strPW)
 		}
+	})
+
+	b.Handle("/send_payment", func(m *tb.Message) {
+		// Enter the address to send
+		// Check frequently used accounts
 	})
 
 	b.Start()
