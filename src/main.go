@@ -256,6 +256,33 @@ func main() {
 	b.Handle("/send_payment", func(m *tb.Message) {
 		// Enter the address to send
 		// Check frequently used accounts
+		b.Send(m.Sender, fmt.Sprintln("This is a remittance command."))
+		b.Send(m.Sender, fmt.Sprint("Would you like to browse your frequently used accounts? (y/n): "))
+		b.Handle(tb.OnText, func(m *tb.Message) {
+			if m.Text == "y" {
+				sID := make([]string, 100)
+				sPW := make([]string, 100)
+				count := readTxFromDB(sID, sPW)
+
+				b.Send(m.Sender, "View all current account information")
+				for i := 0; i < count; i++ {
+					strID := fmt.Sprintf("Public key(Id): %s\n", sID[i])
+					strPW := fmt.Sprintf("Secret key(Pw): %s\n", sPW[i])
+					note := fmt.Sprintf("------------------ Account number: %d------------------", i)
+					b.Send(m.Sender, note)
+					b.Send(m.Sender, strID)
+					b.Send(m.Sender, strPW)
+				}
+			} else {
+				b.Send(m.Sender, fmt.Sprint("Enter the address to send: "))
+				b.Handle(tb.OnText, func(m *tb.Message) {
+					b.Send(m.Sender, "test")
+					// Modify from here
+				})
+			}
+
+		})
+
 	})
 
 	b.Start()
