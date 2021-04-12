@@ -1,4 +1,4 @@
-package main
+package stellar
 
 import (
 	"database/sql"
@@ -16,20 +16,20 @@ func TestParseBalanceStr(t *testing.T) {
 
 func TestFileFunc(t *testing.T) {
 	fn := "hello.txt"
-	if existFile(fn) == false {
-		writeFile(fn, []byte("hello world"))
+	if ExistFile(fn) == false {
+		WriteFile(fn, []byte("hello world"))
 	} else {
-		log.Println(string(readFile(fn)))
+		log.Println(string(ReadFile(fn)))
 	}
 }
 
 func TestSQL(t *testing.T) {
 	db, err := sql.Open("mysql", "")
-	checkError(err)
+	CheckError(err)
 	defer db.Close()
 
 	result, err := db.Exec("INSERT INTO entity_table (ID, PW) VALUES (?, ?)", "hello", "world")
-	checkError(err)
+	CheckError(err)
 
 	n, err := result.RowsAffected()
 	log.Printf("%d row inserted\n", n)
