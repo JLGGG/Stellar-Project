@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/JLGGG/Stellar-Project/src/stellar"
 	tb "gopkg.in/tucnak/telebot.v2"
+	_ "strconv"
 	"time"
 )
 
@@ -79,7 +80,7 @@ func main() {
 		for i := 0; i < count; i++ {
 			strID := fmt.Sprintf("Public key(Id): %s\n", sID[i])
 			strPW := fmt.Sprintf("Secret key(Pw): %s\n", sPW[i])
-			note := fmt.Sprintf("------------------ Account number: %d------------------", i)
+			note := fmt.Sprintf("------------------ Account number: %d------------------", i+1)
 			b.Send(m.Sender, note)
 			b.Send(m.Sender, strID)
 			b.Send(m.Sender, strPW)
@@ -94,30 +95,39 @@ func main() {
 		b.Handle(tb.OnText, func(m *tb.Message) {
 			if m.Text == "y" {
 				sID := make([]string, 100)
-				sPW := make([]string, 100)
-				count := stellar.ReadTxFromDB(sID, sPW)
+				count := stellar.ReadFavoriteAccountFromDB(sID)
 
 				b.Send(m.Sender, "The list of favorite accounts:")
 				for i := 0; i < count; i++ {
-					b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i))
+					b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
 					b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
 				}
 			} else {
+				//var src string
+				sID := make([]string, 100)
+				sPW := make([]string, 100)
 				b.Send(m.Sender, fmt.Sprint("Enter the address to send(Press \"list\" to see the list of accounts):"))
 				b.Handle(tb.OnText, func(m *tb.Message) {
 					if len(m.Text) != 56 && m.Text != "list" {
 						b.Send(m.Sender, "Account ID is 56 characters. Please re-enter.")
 					} else if m.Text == "list" {
 						b.Send(m.Sender, "Please select the account you want to use:")
-						sID := make([]string, 100)
-						sPW := make([]string, 100)
+
 						count := stellar.ReadTxFromDB(sID, sPW)
 						for i := 0; i < count; i++ {
-							b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i))
+							b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
 							b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
 						}
+
 						b.Handle(tb.OnText, func(m *tb.Message) {
-							// stellar.SendPayment(sID[int(m.Text)], )
+							//if sv, err := strconv.Atoi(m.Text); err != nil {
+							//	src = sID[sv]
+							//	b.Send(m.Sender, "test")
+							//}
+							b.Send(m.Sender, "inner test")
+							b.Handle(tb.OnText, func(m *tb.Message) {
+								b.Send(m.Sender, "outer test")
+							})
 						})
 
 						//stellar.SendPayment()
