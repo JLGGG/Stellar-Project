@@ -58,6 +58,18 @@ func WriteTxToDB(id, pw string) {
 	log.Printf("%d row inserted\n", n)
 }
 
+func WriteFavoriteAccountToDB(id string) {
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/testdb")
+	CheckError(err)
+	defer db.Close()
+
+	result, err := db.Exec("INSERT INTO favorite_table (ID) VALUES (?)", id)
+	CheckError(err)
+
+	n, err := result.RowsAffected()
+	log.Printf("%d row inserted\n", n)
+}
+
 func ReadFile(fName string) []byte {
 	data, err := ioutil.ReadFile(fName)
 	CheckError(err)
@@ -70,7 +82,7 @@ func ReadTxFromDB(pID, pPW []string) (count int) {
 	CheckError(err)
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM entity_table")
+	rows, err := db.Query("SELECT id, pw FROM entity_table")
 	CheckError(err)
 	defer rows.Close()
 
@@ -81,6 +93,27 @@ func ReadTxFromDB(pID, pPW []string) (count int) {
 		CheckError(err)
 		pID[count] = id
 		pPW[count] = pw
+		count += 1
+	}
+	return
+}
+
+func ReadFavoriteAccountFromDB(pID []string) (count int) {
+	// Keep the sql connection string private.
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/testdb")
+	CheckError(err)
+	defer db.Close()
+
+	rows, err := db.Query("SELECT id FROM favorite_table")
+	CheckError(err)
+	defer rows.Close()
+
+	var id string
+	count = 0
+	for rows.Next() {
+		err := rows.Scan(&id)
+		CheckError(err)
+		pID[count] = id
 		count += 1
 	}
 	return
