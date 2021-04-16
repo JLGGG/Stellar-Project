@@ -152,7 +152,7 @@ func MakeAccount() (string, string, string) {
 	return address, seed, b.String()
 }
 
-func SendPayment(src, dest string, amount rune) horizon.Transaction {
+func SendPayment(src, dest, amount string) horizon.Transaction {
 	client := horizonclient.DefaultTestNetClient
 
 	// Make sure destination account exists
@@ -176,7 +176,7 @@ func SendPayment(src, dest string, amount rune) horizon.Transaction {
 			Operations: []txnbuild.Operation{
 				&txnbuild.Payment{
 					Destination: dest,
-					Amount:      string(amount),
+					Amount:      amount,
 					Asset:       txnbuild.NativeAsset{},
 				},
 			},
@@ -192,9 +192,6 @@ func SendPayment(src, dest string, amount rune) horizon.Transaction {
 	resp, err := horizonclient.DefaultTestNetClient.SubmitTransaction(tx)
 	CheckError(err)
 
-	//fmt.Println("Successful Transaction:")
-	//fmt.Println("Ledger:", resp.Ledger)
-	//fmt.Println("Hash:", resp.Hash)
 	return resp
 }
 
