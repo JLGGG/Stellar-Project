@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/JLGGG/Stellar-Project/src/stellar"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strconv"
 	_ "strconv"
 	"time"
 )
@@ -103,7 +104,7 @@ func main() {
 					b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
 				}
 			} else {
-				//var src string
+				var src, dst string
 				sID := make([]string, 100)
 				sPW := make([]string, 100)
 				b.Send(m.Sender, fmt.Sprint("Enter the address to send(Press \"list\" to see the list of accounts):"))
@@ -117,16 +118,29 @@ func main() {
 						for i := 0; i < count; i++ {
 							b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
 							b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
+							b.Send(m.Sender, fmt.Sprintf("Secret key(Pw): %s\n", sPW[i]))
 						}
 
 						b.Handle(tb.OnText, func(m *tb.Message) {
-							//if sv, err := strconv.Atoi(m.Text); err != nil {
-							//	src = sID[sv]
-							//	b.Send(m.Sender, "test")
-							//}
-							b.Send(m.Sender, "inner test")
+							v := m.Text
+							if s, err := strconv.Atoi(v); err == nil {
+								src = sPW[s-1]
+								b.Send(m.Sender, "Please enter the receiving account: ")
+							}
 							b.Handle(tb.OnText, func(m *tb.Message) {
-								b.Send(m.Sender, "outer test")
+								dst = m.Text
+								b.Send(m.Sender, "Please enter the amount to be remitted: ")
+
+								b.Handle(tb.OnText, func(m *tb.Message) {
+									amount := m.Text
+									b.Send(m.Sender, "Send the amount...")
+									resp := stellar.SendPayment(src, dst, amount)
+									// Add account balance check func.
+									b.Send(m.Sender, "Successful Transaction:")
+									b.Send(m.Sender, resp.Ledger)
+									b.Send(m.Sender, "check: ")
+									b.Send(m.Sender, resp.Hash)
+								})
 							})
 						})
 
