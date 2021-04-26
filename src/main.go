@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"github.com/JLGGG/Stellar-Project/src/stellar"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"os"
 	"strconv"
 	_ "strconv"
 	"time"
 )
-
-// Token information is always kept private
-const telegramBotToken string = ""
 
 // Save file name
 const fileNameAboutEntity string = "src/info.txt"
@@ -22,9 +20,14 @@ func main() {
 	//	   Add remittance function.
 	//	   Add account favorites
 	//     Add receive function.
-	//     Add external API to get fiat money.
 	//     Add anchor assets of XLM.
-	//     Add function to get indicators such as USD index, 10 treasury, etc.
+
+	// Token information is always kept private
+	// Input your bot token
+	if len(os.Args) < 2 {
+		panic("Error: less than two arguments")
+	}
+	telegramBotToken := os.Args[1]
 
 	keysAndBalance := make([]string, 3)
 	var buffer bytes.Buffer
@@ -132,14 +135,16 @@ func main() {
 								b.Send(m.Sender, "Please enter the amount to be remitted: ")
 
 								b.Handle(tb.OnText, func(m *tb.Message) {
+									if stellar.CheckAccountBalance(src, m.Text) == false {
+										b.Send(m.Sender, "The remittance amount exceeds the account balance. Please re-enter.")
+									}
 									amount := m.Text
 									b.Send(m.Sender, "Send the amount...")
 									resp := stellar.SendPayment(src, dst, amount)
 									// Add account balance check func.
 									b.Send(m.Sender, "Successful Transaction:")
-									b.Send(m.Sender, resp.Ledger)
-									b.Send(m.Sender, "check: ")
-									b.Send(m.Sender, resp.Hash)
+									b.Send(m.Sender, fmt.Sprintf("https://horizon-testnet.stellar.org/accounts/%s", dst))
+									b.Send(m.Sender, fmt.Sprintf("Check: %s", resp.Hash))
 								})
 							})
 						})

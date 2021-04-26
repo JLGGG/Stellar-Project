@@ -202,3 +202,7 @@ func ParseBalanceStr(balanceStr string) string {
 
 	return balanceStr
 }
+
+func CheckAccountBalance(src, a string) bool {
+
+}
