@@ -16,9 +16,7 @@ const fileNameAboutEntity string = "src/info.txt"
 
 func main() {
 	// TODO:
-	//	   Add remittance function.
 	//	   Add account favorites
-	//     Add receive function.
 	//     Add anchor assets of XLM.
 
 	// Token information is always kept private
@@ -43,6 +41,9 @@ func main() {
 		b.Send(m.Sender, "/make_account")
 		b.Send(m.Sender, "/show_account")
 		b.Send(m.Sender, "/send_payment")
+		b.Send(m.Sender, "/show_favorite")
+		b.Send(m.Sender, "/save_favorite")
+		b.Send(m.Sender, "/delete_favorite")
 	})
 
 	b.Handle("/hello", func(m *tb.Message) {
@@ -75,7 +76,7 @@ func main() {
 		sPW := make([]string, 100)
 		count := stellar.ReadTxFromDB(sID, sPW)
 
-		b.Send(m.Sender, "View all current account information")
+		b.Send(m.Sender, "View all your account information")
 		for i := 0; i < count; i++ {
 			strID := fmt.Sprintf("Public key(Id): %s\n", sID[i])
 			strPW := fmt.Sprintf("Secret key(Pw): %s\n", sPW[i])
@@ -86,31 +87,105 @@ func main() {
 		}
 	})
 
+	b.Handle("/show_favorite", func(m *tb.Message) {
+		b.Send(m.Sender, "This command displays a list of favorite accounts.")
+
+		sID := make([]string, 100)
+		count := stellar.ReadFavoriteAccountFromDB(sID)
+
+		b.Send(m.Sender, "View all favorite account information")
+		for i := 0; i < count; i++ {
+			b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
+			b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
+		}
+	})
+
+	b.Handle("/save_favorite", func(m *tb.Message) {
+
+	})
+
+	b.Handle("/delete_favorite", func(m *tb.Message) {
+
+	})
+
 	b.Handle("/send_payment", func(m *tb.Message) {
 		// Enter the address to send
 		// Check frequently used accounts
 		b.Send(m.Sender, fmt.Sprintln("This is a remittance command."))
 		b.Send(m.Sender, fmt.Sprint("Would you like to browse your frequently used accounts? (y/n): "))
 		b.Handle(tb.OnText, func(m *tb.Message) {
-			if m.Text == "y" {
-				sID := make([]string, 100)
-				count := stellar.ReadFavoriteAccountFromDB(sID)
+			var srcAddress, srcSeed, dst, balance string
+			sID := make([]string, 100)
+			sPW := make([]string, 100)
+			dID := make([]string, 100)
 
+			if m.Text == "y" {
+				count := stellar.ReadFavoriteAccountFromDB(dID)
 				b.Send(m.Sender, "The list of favorite accounts:")
+				b.Send(m.Sender, "Select the receiving account to use when sending money")
 				for i := 0; i < count; i++ {
 					b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
-					b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
+					b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", dID[i]))
 				}
+
+				b.Handle(tb.OnText, func(m *tb.Message) {
+					v := m.Text
+					if s, err := strconv.Atoi(v); err == nil {
+						dst = dID[s-1]
+						b.Send(m.Sender, fmt.Sprint("Enter the address to send(Press \"list\" to see the list of your accounts):"))
+
+						b.Handle(tb.OnText, func(m *tb.Message) {
+							if len(m.Text) != 56 && m.Text != "list" {
+								b.Send(m.Sender, "Account ID is 56 characters. Please re-enter.")
+							} else if m.Text == "list" {
+								b.Send(m.Sender, "Please select the remittance account you want to use:")
+								count := stellar.ReadTxFromDB(sID, sPW)
+								for i := 0; i < count; i++ {
+									b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
+									b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
+									b.Send(m.Sender, fmt.Sprintf("Secret key(Pw): %s\n", sPW[i]))
+								}
+								b.Handle(tb.OnText, func(m *tb.Message) {
+									v := m.Text
+									if s, err := strconv.Atoi(v); err == nil {
+										srcSeed = sPW[s-1]
+										srcAddress = sID[s-1]
+									}
+									b.Handle(tb.OnText, func(m *tb.Message) {
+										balance = stellar.ReturnBalance(srcAddress)
+										b.Send(m.Sender, fmt.Sprintf("Your current balance: %s", balance))
+										b.Send(m.Sender, "Please enter the amount to be remitted: ")
+
+										b.Handle(tb.OnText, func(m *tb.Message) {
+											amount := m.Text
+											if s, err := stellar.CheckAccountBalance(balance, m.Text); err == false {
+												b.Send(m.Sender, fmt.Sprintf("The remittance amount exceeds the account's balance. Your current balance: %f. Please re-enter.", s))
+												time.Sleep(10 * time.Second)
+											}
+											b.Send(m.Sender, "Send the amount...")
+											resp := stellar.SendPayment(srcSeed, dst, amount)
+											// Add account balance check func.
+											b.Send(m.Sender, "Successful Transaction:")
+											b.Send(m.Sender, fmt.Sprintf("https://horizon-testnet.stellar.org/accounts/%s", dst))
+											b.Send(m.Sender, fmt.Sprintf("Check: %s", resp.Hash))
+										})
+									})
+								})
+							}
+						})
+					}
+				})
 			} else {
 				var srcAddress, srcSeed, dst, balance string
 				sID := make([]string, 100)
 				sPW := make([]string, 100)
-				b.Send(m.Sender, fmt.Sprint("Enter the address to send(Press \"list\" to see the list of accounts):"))
+				b.Send(m.Sender, fmt.Sprint("Enter the address to send(Press \"list\" to see the list of your accounts):"))
+
 				b.Handle(tb.OnText, func(m *tb.Message) {
 					if len(m.Text) != 56 && m.Text != "list" {
 						b.Send(m.Sender, "Account ID is 56 characters. Please re-enter.")
 					} else if m.Text == "list" {
-						b.Send(m.Sender, "Please select the account you want to use:")
+						b.Send(m.Sender, "Please select the remittance account you want to use:")
 
 						count := stellar.ReadTxFromDB(sID, sPW)
 						for i := 0; i < count; i++ {
@@ -126,7 +201,9 @@ func main() {
 								srcAddress = sID[s-1]
 								b.Send(m.Sender, "Please enter the receiving account: ")
 							}
+
 							b.Handle(tb.OnText, func(m *tb.Message) {
+								// 송금시 입력한 수신계좌 즐겨찾기 추가 코드
 								dst = m.Text
 								balance = stellar.ReturnBalance(srcAddress)
 								b.Send(m.Sender, fmt.Sprintf("Your current balance: %s", balance))
@@ -147,8 +224,6 @@ func main() {
 								})
 							})
 						})
-					} else {
-
 					}
 				})
 			}
