@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/JLGGG/Stellar-Project/src/stellar"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"os"
 	"strconv"
 	_ "strconv"
 	"time"
@@ -24,10 +23,11 @@ func main() {
 
 	// Token information is always kept private
 	// Input your bot token
-	if len(os.Args) < 2 {
-		panic("Error: less than two arguments")
-	}
-	telegramBotToken := os.Args[1]
+	//if len(os.Args) < 2 {
+	//	panic("Error: less than two arguments")
+	//}
+	//telegramBotToken := os.Args[1]
+	telegramBotToken := ""
 
 	keysAndBalance := make([]string, 3)
 	var buffer bytes.Buffer
@@ -62,20 +62,15 @@ func main() {
 		buffer.WriteString(fmt.Sprintf("Account ID: https://horizon-testnet.stellar.org/accounts/%s\n", keysAndBalance[0]))
 		buffer.WriteString(fmt.Sprintf("Current balance: %s\n", balanceResult))
 
-		//var temp []byte
-		//temp = append(temp, []byte(address)...)
-		//temp = append(temp, []byte(seed)...)
-		//temp = append(temp, []byte(buffer.String())...)
-		//writeFile(fileNameAboutEntity, temp)
 		stellar.WriteTxToDB(keysAndBalance[0], keysAndBalance[1])
 
 		b.Send(m.Sender, address)
 		b.Send(m.Sender, seed)
 		b.Send(m.Sender, buffer.String())
+		buffer.Reset()
 	})
 
 	b.Handle("/show_account", func(m *tb.Message) {
-		//b.Send(m.Sender, string(readFile(fileNameAboutEntity)))
 		sID := make([]string, 100)
 		sPW := make([]string, 100)
 		count := stellar.ReadTxFromDB(sID, sPW)
@@ -107,7 +102,7 @@ func main() {
 					b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
 				}
 			} else {
-				var src, dst string
+				var srcAddress, srcSeed, dst, balance string
 				sID := make([]string, 100)
 				sPW := make([]string, 100)
 				b.Send(m.Sender, fmt.Sprint("Enter the address to send(Press \"list\" to see the list of accounts):"))
@@ -127,20 +122,24 @@ func main() {
 						b.Handle(tb.OnText, func(m *tb.Message) {
 							v := m.Text
 							if s, err := strconv.Atoi(v); err == nil {
-								src = sPW[s-1]
+								srcSeed = sPW[s-1]
+								srcAddress = sID[s-1]
 								b.Send(m.Sender, "Please enter the receiving account: ")
 							}
 							b.Handle(tb.OnText, func(m *tb.Message) {
 								dst = m.Text
+								balance = stellar.ReturnBalance(srcAddress)
+								b.Send(m.Sender, fmt.Sprintf("Your current balance: %s", balance))
 								b.Send(m.Sender, "Please enter the amount to be remitted: ")
 
 								b.Handle(tb.OnText, func(m *tb.Message) {
-									if stellar.CheckAccountBalance(src, m.Text) == false {
-										b.Send(m.Sender, "The remittance amount exceeds the account balance. Please re-enter.")
-									}
 									amount := m.Text
+									if s, err := stellar.CheckAccountBalance(balance, m.Text); err == false {
+										b.Send(m.Sender, fmt.Sprintf("The remittance amount exceeds the account's balance. Your current balance: %f. Please re-enter.", s))
+										time.Sleep(10 * time.Second)
+									}
 									b.Send(m.Sender, "Send the amount...")
-									resp := stellar.SendPayment(src, dst, amount)
+									resp := stellar.SendPayment(srcSeed, dst, amount)
 									// Add account balance check func.
 									b.Send(m.Sender, "Successful Transaction:")
 									b.Send(m.Sender, fmt.Sprintf("https://horizon-testnet.stellar.org/accounts/%s", dst))
@@ -148,8 +147,6 @@ func main() {
 								})
 							})
 						})
-
-						//stellar.SendPayment()
 					} else {
 
 					}

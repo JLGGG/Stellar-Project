@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 )
 
 func CheckError(e error) {
@@ -125,8 +126,8 @@ func MakeAccount() (string, string, string) {
 
 	address := pair.Address()
 	seed := pair.Seed()
-	log.Printf("Secret key: %s", seed)
 	log.Printf("Public key: %s", address)
+	log.Printf("Secret key: %s", seed)
 
 	// Get 10,000 test XLM from friendbot.
 	resp, err := http.Get("https://friendbot.stellar.org/?addr=" + address)
@@ -203,6 +204,30 @@ func ParseBalanceStr(balanceStr string) string {
 	return balanceStr
 }
 
-func CheckAccountBalance(src, a string) bool {
+func CheckAccountBalance(balance, requestedAmount string) (float64, bool) {
+	s, _ := strconv.ParseFloat(balance, 64)
+	v, _ := strconv.ParseFloat(requestedAmount, 64) // requested amount
+	if s < v {
+		return s, false // Remittance amount exceeds the balance in the account.
+	} else {
+		return s, true
+	}
+}
 
+func ReturnBalance(address string) string {
+	client := horizonclient.DefaultTestNetClient
+
+	// Make sure destination account exists
+	request := horizonclient.AccountRequest{AccountID: address}
+	account, err := client.AccountDetail(request)
+	CheckError(err)
+
+	var b bytes.Buffer
+
+	// Used the bytes package for concatenating sentences. It's speed is O(n).
+	for _, balance := range account.Balances {
+		b.WriteString(fmt.Sprintf("%s\n", balance.Balance))
+	}
+
+	return ParseBalanceStr(b.String())
 }
