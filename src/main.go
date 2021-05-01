@@ -101,26 +101,40 @@ func main() {
 
 	b.Handle("/save_favorite", func(m *tb.Message) {
 		b.Send(m.Sender, "This command saves a frequently used account.")
-		b.Send(m.Sender, "Please enter receiving account to be saved.")
+		b.Send(m.Sender, "Please enter receiving account to be saved: ")
 		b.Handle(tb.OnText, func(m *tb.Message) {
 			str := m.Text
 			stellar.WriteFavoriteAccountToDB(str)
-		})
 
-		b.Send(m.Sender, "Saved")
+			b.Send(m.Sender, "Saved")
+			sID := make([]string, 100)
+			count := stellar.ReadFavoriteAccountFromDB(sID)
+
+			b.Send(m.Sender, "View all favorite account information")
+			for i := 0; i < count; i++ {
+				b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
+				b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
+			}
+		})
+	})
+
+	b.Handle("/delete_favorite", func(m *tb.Message) {
+		b.Send(m.Sender, "Please select the frequently used receiving account to be deleted from below.")
+
+		b.Send(m.Sender, "View all favorite account information")
 		sID := make([]string, 100)
 		count := stellar.ReadFavoriteAccountFromDB(sID)
 
-		b.Send(m.Sender, "View all favorite account information")
 		for i := 0; i < count; i++ {
 			b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
 			b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
 		}
 
-	})
-
-	b.Handle("/delete_favorite", func(m *tb.Message) {
-
+		b.Handle(tb.OnText, func(m *tb.Message) {
+			n, _ := strconv.Atoi(m.Text)
+			stellar.DeleteFavoriteAccountFromDB(sID[n-1])
+			b.Send(m.Sender, "Delete chosen account")
+		})
 	})
 
 	b.Handle("/send_payment", func(m *tb.Message) {
