@@ -11,13 +11,7 @@ import (
 	"time"
 )
 
-// Save file name
-const fileNameAboutEntity string = "src/info.txt"
-
 func main() {
-	// TODO:
-	//	   Add account favorites
-
 	// Token information is always kept private
 	// Input your bot token
 	//if len(os.Args) < 2 {
@@ -39,7 +33,7 @@ func main() {
 		b.Send(m.Sender, "/hello")
 		b.Send(m.Sender, "/make_account")
 		b.Send(m.Sender, "/show_account")
-		b.Send(m.Sender, "/send_payment")
+		b.Send(m.Sender, "/send_money")
 		b.Send(m.Sender, "/show_favorite")
 		b.Send(m.Sender, "/save_favorite")
 		b.Send(m.Sender, "/delete_favorite")
@@ -49,7 +43,6 @@ func main() {
 		b.Send(m.Sender, "Hello World!")
 	})
 
-	//TODO What to do when /make_account called twice?
 	b.Handle("/make_account", func(m *tb.Message) {
 		// keysAndBalance[0]: public key
 		// keysAndBalance[1]: private key
@@ -137,7 +130,7 @@ func main() {
 		})
 	})
 
-	b.Handle("/send_payment", func(m *tb.Message) {
+	b.Handle("/send_money", func(m *tb.Message) {
 		// Enter the address to send
 		// Check frequently used accounts
 		b.Send(m.Sender, fmt.Sprintln("This is a remittance command."))
@@ -180,24 +173,22 @@ func main() {
 										srcSeed = sPW[s-1]
 										srcAddress = sID[s-1]
 									}
-									b.Handle(tb.OnText, func(m *tb.Message) {
-										balance = stellar.ReturnBalance(srcAddress)
-										b.Send(m.Sender, fmt.Sprintf("Your current balance: %s", balance))
-										b.Send(m.Sender, "Please enter the amount to be remitted: ")
+									balance = stellar.ReturnBalance(srcAddress)
+									b.Send(m.Sender, fmt.Sprintf("Your current balance: %s", balance))
+									b.Send(m.Sender, "Please enter the money to be remitted: ")
 
-										b.Handle(tb.OnText, func(m *tb.Message) {
-											amount := m.Text
-											if s, err := stellar.CheckAccountBalance(balance, m.Text); err == false {
-												b.Send(m.Sender, fmt.Sprintf("The remittance amount exceeds the account's balance. Your current balance: %f. Please re-enter.", s))
-												time.Sleep(10 * time.Second)
-											}
-											b.Send(m.Sender, "Send the amount...")
-											resp := stellar.SendPayment(srcSeed, dst, amount)
-											// Add account balance check func.
-											b.Send(m.Sender, "Successful Transaction:")
-											b.Send(m.Sender, fmt.Sprintf("https://horizon-testnet.stellar.org/accounts/%s", dst))
-											b.Send(m.Sender, fmt.Sprintf("Check: %s", resp.Hash))
-										})
+									b.Handle(tb.OnText, func(m *tb.Message) {
+										amount := m.Text
+										if s, err := stellar.CheckAccountBalance(balance, m.Text); err == false {
+											b.Send(m.Sender, fmt.Sprintf("The remittance money exceeds the account's balance. Your current balance: %f. Please re-enter.", s))
+											time.Sleep(10 * time.Second)
+										}
+										b.Send(m.Sender, "Send the money...")
+										resp := stellar.SendPayment(srcSeed, dst, amount)
+										// Add account balance check func.
+										b.Send(m.Sender, "Successful Transaction:")
+										b.Send(m.Sender, fmt.Sprintf("https://horizon-testnet.stellar.org/accounts/%s", dst))
+										b.Send(m.Sender, fmt.Sprintf("Check: %s", resp.Hash))
 									})
 								})
 							}
@@ -228,23 +219,25 @@ func main() {
 							if s, err := strconv.Atoi(v); err == nil {
 								srcSeed = sPW[s-1]
 								srcAddress = sID[s-1]
-								b.Send(m.Sender, "Please enter the receiving account: ")
+								b.Send(m.Sender, "Please enter the receiving address: ")
 							}
 
 							b.Handle(tb.OnText, func(m *tb.Message) {
-								// 송금시 입력한 수신계좌 즐겨찾기 추가 코드
 								dst = m.Text
+								stellar.WriteFavoriteAccountToDB(dst)
+								b.Send(m.Sender, "The receiving account address you entered has been saved "+
+									"to the list of frequently used receiving accounts.")
 								balance = stellar.ReturnBalance(srcAddress)
 								b.Send(m.Sender, fmt.Sprintf("Your current balance: %s", balance))
-								b.Send(m.Sender, "Please enter the amount to be remitted: ")
+								b.Send(m.Sender, "Please enter the money to be remitted: ")
 
 								b.Handle(tb.OnText, func(m *tb.Message) {
 									amount := m.Text
 									if s, err := stellar.CheckAccountBalance(balance, m.Text); err == false {
-										b.Send(m.Sender, fmt.Sprintf("The remittance amount exceeds the account's balance. Your current balance: %f. Please re-enter.", s))
+										b.Send(m.Sender, fmt.Sprintf("The remittance money exceeds the account's balance. Your current balance: %f. Please re-enter.", s))
 										time.Sleep(10 * time.Second)
 									}
-									b.Send(m.Sender, "Send the amount...")
+									b.Send(m.Sender, "Send the money...")
 									resp := stellar.SendPayment(srcSeed, dst, amount)
 									// Add account balance check func.
 									b.Send(m.Sender, "Successful Transaction:")
@@ -256,10 +249,7 @@ func main() {
 					}
 				})
 			}
-
 		})
-
 	})
-
 	b.Start()
 }
