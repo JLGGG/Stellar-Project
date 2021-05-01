@@ -17,7 +17,6 @@ const fileNameAboutEntity string = "src/info.txt"
 func main() {
 	// TODO:
 	//	   Add account favorites
-	//     Add anchor assets of XLM.
 
 	// Token information is always kept private
 	// Input your bot token
@@ -101,6 +100,22 @@ func main() {
 	})
 
 	b.Handle("/save_favorite", func(m *tb.Message) {
+		b.Send(m.Sender, "This command saves a frequently used account.")
+		b.Send(m.Sender, "Please enter receiving account to be saved.")
+		b.Handle(tb.OnText, func(m *tb.Message) {
+			str := m.Text
+			stellar.WriteFavoriteAccountToDB(str)
+		})
+
+		b.Send(m.Sender, "Saved")
+		sID := make([]string, 100)
+		count := stellar.ReadFavoriteAccountFromDB(sID)
+
+		b.Send(m.Sender, "View all favorite account information")
+		for i := 0; i < count; i++ {
+			b.Send(m.Sender, fmt.Sprintf("------------------ Account number: %d------------------", i+1))
+			b.Send(m.Sender, fmt.Sprintf("Public key(Id): %s\n", sID[i]))
+		}
 
 	})
 
