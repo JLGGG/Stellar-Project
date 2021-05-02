@@ -5,12 +5,12 @@
 This is a stellar bot running on telegram. This bot provides a function that makes it easy to use the stellar test network. Currently, there are a total of 7 commands supported by bot.
 To use this bot, you need to create a personal bot using Telegram's [BotFather](https://core.telegram.org/bots).   
 You can create a token with BotFather's /newbot command. Keep your token secure and store it safely, it can be used by anyone to control your bot.
-You must use this generated token.   
+You must use this generated token. Click to view the demo video: [link]()
 
 ## How to use the program
 - Package management with Go modules. Refer to [go.mod](https://github.com/JLGGG/Stellar-Project/blob/main/go.mod) for the package information used.
 - After downloading the program, go to the folder where main.go is located.
-- `go run main.go token`: In the Token field, enter your personal bot token created using BotFather.
+- `go run main.go token`: In the token field, enter your personal bot token created using BotFather.
 
 ## Supported commands
 - `/`: You can see a list of commands supported by Stellar bot.
