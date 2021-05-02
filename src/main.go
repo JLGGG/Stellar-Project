@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/JLGGG/Stellar-Project/src/stellar"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"os"
 	"strconv"
 	_ "strconv"
 	"time"
@@ -14,11 +15,10 @@ import (
 func main() {
 	// Token information is always kept private
 	// Input your bot token
-	//if len(os.Args) < 2 {
-	//	panic("Error: less than two arguments")
-	//}
-	//telegramBotToken := os.Args[1]
-	telegramBotToken := ""
+	if len(os.Args) < 2 {
+		panic("Error: Enter your telegram bot token")
+	}
+	telegramBotToken := os.Args[1]
 
 	keysAndBalance := make([]string, 3)
 	var buffer bytes.Buffer
@@ -184,8 +184,7 @@ func main() {
 											time.Sleep(10 * time.Second)
 										}
 										b.Send(m.Sender, "Send the money...")
-										resp := stellar.SendPayment(srcSeed, dst, amount)
-										// Add account balance check func.
+										resp := stellar.SendMoney(srcSeed, dst, amount)
 										b.Send(m.Sender, "Successful Transaction:")
 										b.Send(m.Sender, fmt.Sprintf("https://horizon-testnet.stellar.org/accounts/%s", dst))
 										b.Send(m.Sender, fmt.Sprintf("Check: %s", resp.Hash))
@@ -238,7 +237,7 @@ func main() {
 										time.Sleep(10 * time.Second)
 									}
 									b.Send(m.Sender, "Send the money...")
-									resp := stellar.SendPayment(srcSeed, dst, amount)
+									resp := stellar.SendMoney(srcSeed, dst, amount)
 									// Add account balance check func.
 									b.Send(m.Sender, "Successful Transaction:")
 									b.Send(m.Sender, fmt.Sprintf("https://horizon-testnet.stellar.org/accounts/%s", dst))

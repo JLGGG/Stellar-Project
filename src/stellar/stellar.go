@@ -81,7 +81,7 @@ func MakeAccount() (string, string, string) {
 	return address, seed, b.String()
 }
 
-func SendPayment(src, dest, amount string) horizon.Transaction {
+func SendMoney(src, dest, amount string) horizon.Transaction {
 	client := horizonclient.DefaultTestNetClient
 
 	// Make sure destination account exists
